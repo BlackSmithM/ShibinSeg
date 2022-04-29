@@ -160,3 +160,58 @@ class Dataset(paddle.io.Dataset):
 
     def __len__(self):
         return len(self.file_list)
+    
+@manager.DATASETS.add_component
+class ConcatDataset(paddle.io.Dataset):
+    def __init__(self,
+                 transforms,
+                 dataset_root,
+                 num_classes,
+                 mode='train',
+                 file_path = None,
+                 separator=' ',
+                 ignore_index=255,
+                 edge=False):
+        self.dataset_root = dataset_root
+        self.transforms = Compose(transforms)
+        self.file_list = list()
+        mode = mode.lower()
+        self.mode = mode
+        self.num_classes = num_classes
+        self.ignore_index = ignore_index
+        self.edge = edge
+
+
+        with open(file_path, 'r') as f:
+            for line in f:
+                items = line.strip().split(separator)
+                image1_path = os.path.join(self.dataset_root, items[0])
+                image2_path = os.path.join(self.dataset_root, items[1])
+                label_path = os.path.join(self.dataset_root, items[2])
+                self.file_list.append([image1_path, image2_path, label_path])
+
+    def __getitem__(self, idx):
+        image1_path, image2_path, label_path = self.file_list[idx]
+        # print(image_path, label_path)
+
+        if self.mode == 'val':
+            im1, _ = self.transforms(im=image1_path)
+            im2, _ = self.transforms(im=image2_path)
+            label = np.asarray(Image.open(label_path))
+            label = label[np.newaxis, :, :]
+
+            im = np.concatenate((im1, im2), axis=0)
+            return im, label
+        else:
+            im1, label = self.transforms(im=image1_path, label=label_path)
+            im2, _ = self.transforms(im=image2_path)
+            im = np.concatenate((im1, im2), axis=0)
+            if self.edge:
+                edge_mask = F.mask_to_binary_edge(
+                    label, radius=2, num_classes=self.num_classes)
+                return im, label, edge_mask
+            else:
+                return im, label
+
+    def __len__(self):
+        return len(self.file_list)
