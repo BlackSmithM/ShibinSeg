@@ -302,7 +302,6 @@ def aug_inference(model,
                 crop_size=crop_size,
                 stride=stride,
                 batch_size=batch_size)
-            paddle.set_device('cpu')  # if gpu memory is limited
             logit = tensor_flip(logit, flip)
             logit = F.interpolate(logit, (h_input, w_input), mode='bilinear')
 
