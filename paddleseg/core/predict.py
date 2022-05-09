@@ -89,6 +89,7 @@ def predict(model,
     progbar_pred = progbar.Progbar(target=len(img_lists[0]), verbose=1)
     with paddle.no_grad():
         for i, im_path in enumerate(img_lists[local_rank]):
+            paddle.set_device('gpu')
             im = cv2.imread(im_path)
             ori_shape = im.shape[:2]
             im, _ = transforms(im)
@@ -106,7 +107,8 @@ def predict(model,
                     flip_vertical=flip_vertical,
                     is_slide=is_slide,
                     stride=stride,
-                    crop_size=crop_size)
+                    crop_size=crop_size,
+                    batch_size=batch_size)
             else:
                 pred = infer.inference(
                     model,
